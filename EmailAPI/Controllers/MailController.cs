@@ -28,12 +28,13 @@ namespace EmailAPI.Controllers
             this.mailService = mailService; // contains function to send E-Mail
             _mailSettings = mailSettings.Value; // need the mail settings to get Sender E-Mail
         }
+
         [HttpPost("send")]
         public async Task<IActionResult> SendMail([FromForm] MailRequest request)
         {
             try
             {
-                await mailService.SendEmailAsync(request);  //Re-usable function from MailService DLL
+                await mailService.SendEmailAsync(request.Subject, request.Body, request.Recipient, request.Attachments);  //Re-usable function from MailService DLL
 
                 Console.WriteLine(                          
                     "Sender: " + _mailSettings.Mail +       

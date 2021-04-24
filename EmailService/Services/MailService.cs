@@ -2,12 +2,14 @@
 using EmailService.Settings;
 using MailKit.Net.Smtp;
 using MailKit.Security;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using MimeKit;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace EmailService.Services
@@ -20,18 +22,18 @@ namespace EmailService.Services
             mailConfig = mailSettings.Value;
         }
 
-        public async Task SendEmailAsync(MailRequest mailRequest)
+        public async Task SendEmailAsync(string Subject, string Body, string Recipient, List<IFormFile> Attachments = null, int maxRetries = 3)
         {
             var email = new MimeMessage();
             email.Sender = MailboxAddress.Parse(mailConfig.Mail);      // set the sender
-            email.To.Add(MailboxAddress.Parse(mailRequest.Recipient)); // set "to" or recipient
-            email.Subject = mailRequest.Subject;                       // set email subject
+            email.To.Add(MailboxAddress.Parse(Recipient));             // set "to" or recipient
+            email.Subject = Subject;                                   // set email subject
             var builder = new BodyBuilder();
 
-            if (mailRequest.Attachments != null)                       // If there is an attachment...
+            if (Attachments != null)                                   // If there is an attachment...
             {
                 byte[] bytes;                                          // allocate memory
-                foreach (var file in mailRequest.Attachments)
+                foreach (var file in Attachments)
                 {
                     if (file.Length > 0)                               // if valid attachment
                     {
@@ -45,12 +47,33 @@ namespace EmailService.Services
                     }
                 }
             }
-            builder.HtmlBody = mailRequest.Body;
-            email.Body = builder.ToMessageBody();  // set email body
+            builder.HtmlBody = Body;
+            email.Body = builder.ToMessageBody(); 
             using var smtpClient = new SmtpClient();
             smtpClient.Connect(mailConfig.Host, mailConfig.Port, SecureSocketOptions.StartTls);
             smtpClient.Authenticate(mailConfig.Mail, mailConfig.Password);
-            await smtpClient.SendAsync(email);
+
+            bool success = false; 
+            int attempts = 0;
+
+            while (!success && attempts <= maxRetries)
+            {
+                try
+                {
+                    await smtpClient.SendAsync(email).ConfigureAwait(false);
+                    success = true;
+                }
+                catch
+                {
+                    if (attempts >= maxRetries)
+                    {
+                        throw;
+                    }
+                }
+                attempts++;
+                Console.WriteLine("Iteration " + attempts);
+                Thread.Sleep(10000);
+            }
             smtpClient.Disconnect(true);
         }
     }
