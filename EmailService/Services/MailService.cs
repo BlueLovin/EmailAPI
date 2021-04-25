@@ -49,18 +49,24 @@ namespace EmailService.Services
             }
             builder.HtmlBody = Body;
             email.Body = builder.ToMessageBody(); 
-            using var smtpClient = new SmtpClient();
-            smtpClient.Connect(mailConfig.Host, mailConfig.Port, SecureSocketOptions.StartTls);
-            smtpClient.Authenticate(mailConfig.Mail, mailConfig.Password);
+            
 
             bool success = false; 
             int attempts = 0;
-
-            while (!success && attempts <= maxRetries)
+            while (!success && attempts <= maxRetries) // retry loop!
             {
+                if (attempts > 0)
+                {
+                    Thread.Sleep(5000); // sleep 5 seconds if not first attempt
+                }
                 try
                 {
-                    await smtpClient.SendAsync(email).ConfigureAwait(false);
+                    using var smtpClient = new SmtpClient();
+                    smtpClient.Connect(mailConfig.Host, mailConfig.Port, SecureSocketOptions.StartTls);
+                    smtpClient.Authenticate(mailConfig.Mail, mailConfig.Password);
+                    await smtpClient.SendAsync(email);
+
+                    smtpClient.Disconnect(true);
                     success = true;
                 }
                 catch
@@ -71,10 +77,8 @@ namespace EmailService.Services
                     }
                 }
                 attempts++;
-                Console.WriteLine("Iteration " + attempts);
-                Thread.Sleep(10000);
+                Console.WriteLine(DateTime.Now.ToString() + " - attempting SendEmailAsync... attempt #" + attempts); // log iteration
             }
-            smtpClient.Disconnect(true);
         }
     }
 }
