@@ -11,12 +11,15 @@ using EmailService.Services;
 using EmailService.Models;
 using EmailService.Settings;
 using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Cors;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
 namespace EmailAPI.Controllers
 {
     [Route("api/[controller]")]
+//    [EnableCors("_myAllowSpecificOrigins")]
+//    [DisableCors]
     [ApiController]
     public class MailController : ControllerBase
     {
