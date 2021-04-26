@@ -22,11 +22,11 @@ namespace EmailAPI.Controllers
     {
         private readonly IMailService mailService;
 
-        private readonly MailSettings _mailSettings;
-        public MailController(IMailService mailService, IOptions<MailSettings> mailSettings)
+        private readonly MailSettings mailSettings;
+        public MailController(IMailService mailService, IOptions<MailSettings> _mailSettings)
         {
-            this.mailService = mailService; // contains function to send E-Mail
-            _mailSettings = mailSettings.Value; // need the mail settings to get Sender E-Mail
+            this.mailService = mailService;                       // contains function to send E-Mail
+            mailSettings = _mailSettings.Value;                   // need the mail settings to get Sender E-Mail
         }
 
         [HttpPost("send")]
@@ -34,14 +34,10 @@ namespace EmailAPI.Controllers
         {
             try
             {
-                await mailService.SendEmailAsync(request.Subject, request.Body, request.Recipient, request.Attachments);  //Re-usable function from MailService DLL
-
-                Console.WriteLine(                          
-                    "Sender: " + _mailSettings.Mail +       
-                    "\nRecipient: " + request.Recipient +  /////////////
-                    "\nSubject: " + request.Subject +      // LOGGING //
-                    "\nBody: " + request.Body              /////////////
-                    );                                      
+                await mailService.SendEmailAsync(request.Subject, // Re-usable function from MailService DLL   
+                    request.Body,
+                    request.Recipient,
+                    request.Attachments);          
                 return Ok();
             }
             catch (Exception ex)

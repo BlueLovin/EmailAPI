@@ -5,6 +5,7 @@ using MailKit.Security;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using MimeKit;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -24,6 +25,12 @@ namespace EmailService.Services
 
         public async Task SendEmailAsync(string Subject, string Body, string Recipient, List<IFormFile> Attachments = null, int maxRetries = 3)
         {
+            using var log = new LoggerConfiguration()
+                .WriteTo.Console()
+                .WriteTo.File("logs\\MailService.log", rollingInterval: RollingInterval.Day)
+                .CreateLogger();
+
+
             var email = new MimeMessage();
             email.Sender = MailboxAddress.Parse(mailConfig.Mail);      // set the sender
             email.To.Add(MailboxAddress.Parse(Recipient));             // set "to" or recipient
@@ -52,12 +59,20 @@ namespace EmailService.Services
             
 
             bool success = false; 
-            int attempts = 0;
-            while (!success && attempts <= maxRetries) // retry loop!
+            int attempts = 1;
+            while (!success && attempts <= maxRetries)                 // retry 3 times loop!
             {
-                if (attempts > 0)
+                if (attempts > 1)
                 {
-                    Thread.Sleep(5000); // sleep 5 seconds if not first attempt
+                    log.Information(DateTime.Now.ToString() + 
+                        " - retrying SendEmailAsync... attempt #" 
+                        + attempts);                                   // log iteration
+                    Thread.Sleep(5000);                                // sleep 5 seconds if not first attempt
+                }
+                else
+                {
+                    log.Information(DateTime.Now.ToString() +          // log first attempt 
+                        " - attempting SendEmailAsync...");
                 }
                 try
                 {
@@ -65,19 +80,25 @@ namespace EmailService.Services
                     smtpClient.Connect(mailConfig.Host, mailConfig.Port, SecureSocketOptions.StartTls);
                     smtpClient.Authenticate(mailConfig.Mail, mailConfig.Password);
                     await smtpClient.SendAsync(email);
-
                     smtpClient.Disconnect(true);
+
+                    log.Information("Success. email object sent: " + 
+                        "\nSender: " + email.Sender +
+                        "\nRecipient: " + Recipient +                  /////////////////////
+                        "\nSubject: " + email.Subject +                // LOGGING SUCCESS //
+                        "\nBody: " + Body                              /////////////////////
+                    );
                     success = true;
                 }
                 catch
                 {
                     if (attempts >= maxRetries)
                     {
+                        log.Error("Error in SendEmailAsync. Exceeded maximum number of attempts: " + maxRetries); // log failure
                         throw;
                     }
                 }
                 attempts++;
-                Console.WriteLine(DateTime.Now.ToString() + " - attempting SendEmailAsync... attempt #" + attempts); // log iteration
             }
         }
     }

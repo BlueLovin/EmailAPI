@@ -23,13 +23,24 @@ namespace EmailAPI
         }
 
         public IConfiguration Configuration { get; }
+        readonly string MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddCors(options =>
+            {
+                options.AddPolicy(name: MyAllowSpecificOrigins,
+                    builder =>
+                    {
+                        builder.WithOrigins("http://localhost:3000",
+                                            "https://localhost:3000"); //react app
+                    });
+            });
             services.AddControllers();
             services.Configure<MailSettings>(Configuration.GetSection("MailSettings"));
             services.AddTransient<IMailService, EmailService.Services.MailService>();
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
