@@ -18,9 +18,6 @@ function App() {
   const [failedAlertVisible, setFailedAlertVisible] = useState(false);
 
   useEffect(() => {
-    console.log(apiSendEndpoint)
-    
-    console.log(protocol)
   }, [isLoading]);
 
   const showSentAlert = () => {
@@ -76,15 +73,18 @@ const handleChange = (e) => {
       )
         .then((response) => response.json())
         .then((response) => {
-            setIsSent(true);
-            showSentAlert();
         })
         .catch((error) => {
+          if(error.response){
             setFailed(true);
             showFailedAlert();
+          }
         });
 
         setIsLoading(false);
+
+        setIsSent(true);
+        showSentAlert();
 
         setActiveItem({
           To: '',
@@ -128,8 +128,8 @@ const handleChange = (e) => {
           <br/>
           <br/>
           {isSent ? 
-            <Alert color="primary" isOpen={sentAlertVisible}>
-              Successfully sent E-Mail
+            <Alert className="text-center" color="primary" isOpen={sentAlertVisible}>
+              Sent
             </Alert>
           : null}
 
