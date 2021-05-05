@@ -6,7 +6,7 @@ module.exports = function(app) {
   app.use(
     '/api/mail/send',
     createProxyMiddleware({
-      target: process.env.REACT_APP_PROXY_HOST,
+      target: host,
       changeOrigin: true,
     })
   );
